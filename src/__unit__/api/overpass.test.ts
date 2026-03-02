@@ -104,6 +104,24 @@ describe("overpassProvider", () => {
 
       expect(mockFetch.mock.calls[0][1]?.signal).toBe(controller.signal);
     });
+
+    it("ignores elements whose amenity is not in the requested categories", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            elements: [
+              { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "hospital" } },
+              { type: "node", id: 2, lat: 51.6, lon: 0.0, tags: {} },
+              { type: "node", id: 3, lat: 51.7, lon: 0.1 },
+            ],
+          }),
+          { status: 200 }
+        )
+      );
+
+      const result = await overpassProvider.fetchMultipleCategories(["restaurant"], bbox);
+      expect(result.get("restaurant")).toEqual([]);
+    });
   });
 
   describe("fetchPoints", () => {
@@ -121,6 +139,13 @@ describe("overpassProvider", () => {
 
       const points = await overpassProvider.fetchPoints("cafe", bbox);
       expect(points).toEqual([[51.5, -0.1]]);
+    });
+
+    it("returns empty array when the category is absent from the result map", async () => {
+      vi.spyOn(overpassProvider, "fetchMultipleCategories").mockResolvedValue(new Map());
+
+      const points = await overpassProvider.fetchPoints("restaurant", bbox);
+      expect(points).toEqual([]);
     });
   });
 });
