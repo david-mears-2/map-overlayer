@@ -149,6 +149,17 @@ describe("App integration", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("shows an error alert when the fetch fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
+    render(<App />);
+
+    await flushDebounce();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent("Network error");
+  });
+
   it("enabling multiple layers sends a single batched fetch for all categories", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(OVERPASS_MULTI_RESPONSE), { status: 200 })
