@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { DataProvider } from "../../context/DataProvider";
 import { useDataContext } from "../../context/useDataContext";
-import type { HeatLayer, LatLngPoint } from "../../types";
+import type { LatLngPoint } from "../../types";
 
 vi.mock("../../api", () => ({
   activeProvider: {
@@ -25,18 +25,6 @@ function TestConsumer({ category }: { category: string }) {
       <span data-testid="error">{error ?? "none"}</span>
     </div>
   );
-}
-
-function makeLayer(overrides: Partial<HeatLayer> = {}): HeatLayer {
-  return {
-    id: "test",
-    label: "Test",
-    category: "restaurant",
-    colour: "#ff0000",
-    opacity: 0.8,
-    enabled: true,
-    ...overrides,
-  };
 }
 
 const DEBOUNCE_MS = 150;
@@ -63,9 +51,8 @@ describe("DataContext", () => {
     ]);
     mockFetchMultiple.mockResolvedValue(points);
 
-    const layers = [makeLayer()];
     render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={["restaurant"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -81,9 +68,8 @@ describe("DataContext", () => {
   });
 
   it("does not fetch for disabled layers", async () => {
-    const layers = [makeLayer({ enabled: false })];
     render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={[]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -101,12 +87,8 @@ describe("DataContext", () => {
     ]);
     mockFetchMultiple.mockResolvedValue(points);
 
-    const layers = [
-      makeLayer({ id: "r", category: "restaurant" }),
-      makeLayer({ id: "c", category: "cafe" }),
-    ];
     render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={["restaurant", "cafe"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -123,9 +105,8 @@ describe("DataContext", () => {
     ]);
     mockFetchMultiple.mockResolvedValue(points);
 
-    const layers = [makeLayer()];
     const { rerender } = render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={["restaurant"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -137,12 +118,12 @@ describe("DataContext", () => {
 
     // Disable then re-enable — should use cache
     rerender(
-      <DataProvider layers={[makeLayer({ enabled: false })]}>
+      <DataProvider categories={[]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
     rerender(
-      <DataProvider layers={[makeLayer({ enabled: true })]}>
+      <DataProvider categories={["restaurant"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -157,9 +138,8 @@ describe("DataContext", () => {
   it("sets error on fetch failure", async () => {
     mockFetchMultiple.mockRejectedValue(new Error("Network error"));
 
-    const layers = [makeLayer()];
     render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={["restaurant"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );
@@ -172,9 +152,8 @@ describe("DataContext", () => {
   it("passes AbortSignal to the provider", async () => {
     mockFetchMultiple.mockResolvedValue(new Map());
 
-    const layers = [makeLayer()];
     render(
-      <DataProvider layers={layers}>
+      <DataProvider categories={["restaurant"]}>
         <TestConsumer category="restaurant" />
       </DataProvider>
     );

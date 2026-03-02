@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { HeatmapLayer } from "./HeatmapLayer";
 import { DataProvider } from "../context/DataProvider";
@@ -24,8 +25,18 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
 }
 
 export function MapView({ layers }: Props) {
+  // Stabilize the categories reference so that opacity-only changes to
+  // `layers` don't cause DataProvider to re-run its fetch effect.
+  // Strings are compared by value, so categoriesKey only changes when the
+  // actual set of enabled categories changes.
+  const categoriesKey = layers
+    .filter((l) => l.enabled)
+    .map((l) => l.category)
+    .join(",");
+  const stableCategories = useMemo(() => categoriesKey.split(",").filter(Boolean), [categoriesKey]);
+
   return (
-    <DataProvider layers={layers}>
+    <DataProvider categories={stableCategories}>
       <MapContainer
         center={LONDON_CENTER}
         zoom={12}

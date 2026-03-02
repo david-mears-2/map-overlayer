@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { activeProvider } from "../api";
-import type { HeatLayer, LatLngPoint } from "../types";
+import type { LatLngPoint } from "../types";
 import { LONDON_BBOX } from "../types";
 import { DataContext } from "./useDataContext";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
@@ -13,12 +13,15 @@ const DEBOUNCE_MS = 150;
  *
  * Fetched data is cached by category — toggling a layer off and back on
  * serves cached points instantly without a network request.
+ *
+ * Accepts a pre-stabilized `categories` array so that unrelated changes
+ * (e.g. opacity) don't trigger re-fetching.
  */
 export function DataProvider({
-  layers,
+  categories,
   children,
 }: {
-  layers: HeatLayer[];
+  categories: string[];
   children: React.ReactNode;
 }) {
   const [cache, setCache] = useState<Map<string, LatLngPoint[]>>(new Map());
@@ -26,19 +29,14 @@ export function DataProvider({
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const enabledCategories = useMemo(
-    () => layers.filter((l) => l.enabled).map((l) => l.category),
-    [layers]
-  );
-
   // The cache check lives *inside* the debounced callback so it reads
   // the latest cache at fire time, not at queue time. This is safe because
   // useDebouncedCallback always calls the most recent version of this
   // function (with its latest closure), even if `cache` has changed since
   // the call was queued.
   const debouncedFetchRef = useDebouncedCallback(
-    (categories: string[]) => {
-      const uncached = categories.filter((c) => !cache.has(c));
+    (cats: string[]) => {
+      const uncached = cats.filter((c) => !cache.has(c));
       if (uncached.length === 0) return;
 
       abortRef.current?.abort();
@@ -72,9 +70,9 @@ export function DataProvider({
 
   useEffect(() => {
     const debouncedFetch = debouncedFetchRef.current;
-    debouncedFetch?.(enabledCategories);
+    debouncedFetch?.(categories);
     return () => debouncedFetch?.cancel();
-  }, [enabledCategories, debouncedFetchRef]);
+  }, [categories, debouncedFetchRef]);
 
   useEffect(() => {
     const abort = abortRef;
