@@ -24,6 +24,29 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
   );
 }
 
+function LoadingOverlay() {
+  const { loading } = useDataContext();
+  if (!loading) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(255,255,255,0.6)",
+        zIndex: 1000,
+        pointerEvents: "none",
+      }}
+    >
+      Loading…
+    </div>
+  );
+}
+
 export function MapView({ layers }: Props) {
   // Stabilize the categories reference so that opacity-only changes to
   // `layers` don't cause DataProvider to re-run its fetch effect.
@@ -37,19 +60,22 @@ export function MapView({ layers }: Props) {
 
   return (
     <DataProvider categories={stableCategories}>
-      <MapContainer
-        center={LONDON_CENTER}
-        zoom={12}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {layers.map((layer) => (
-          <DataLayer key={layer.id} layer={layer} />
-        ))}
-      </MapContainer>
+      <div style={{ position: "relative", height: "100%", width: "100%" }}>
+        <MapContainer
+          center={LONDON_CENTER}
+          zoom={12}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          {layers.map((layer) => (
+            <DataLayer key={layer.id} layer={layer} />
+          ))}
+        </MapContainer>
+        <LoadingOverlay />
+      </div>
     </DataProvider>
   );
 }
