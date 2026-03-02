@@ -2,9 +2,9 @@ import { test, expect } from "@playwright/test";
 
 const MOCK_OVERPASS_RESPONSE = {
   elements: [
-    { type: "node", id: 1, lat: 51.51, lon: -0.12 },
-    { type: "node", id: 2, lat: 51.52, lon: -0.08 },
-    { type: "node", id: 3, lat: 51.50, lon: -0.10 },
+    { type: "node", id: 1, lat: 51.51, lon: -0.12, tags: { amenity: "restaurant" } },
+    { type: "node", id: 2, lat: 51.52, lon: -0.08, tags: { amenity: "restaurant" } },
+    { type: "node", id: 3, lat: 51.50, lon: -0.10, tags: { amenity: "restaurant" } },
   ],
 };
 

@@ -1,29 +1,37 @@
 /**
  * Integration tests: render the real App component tree with only the
  * network boundary (fetch) mocked. This exercises the wiring between
- * App → MapView → DataLayer → useDataLayer → overpassProvider → fetch.
+ * App → MapView → DataProvider → overpassProvider → fetch.
  *
  * Leaflet's canvas-based rendering won't produce visible pixels in jsdom,
  * but we can verify that:
  *   - the layer panel renders with the correct initial state
  *   - toggling/opacity controls update state correctly
- *   - fetch is called with the right Overpass query when a layer is enabled
- *   - disabling a layer does not trigger a fetch
+ *   - fetch is called with a batched Overpass union query when layers are enabled
+ *   - disabling a layer does not trigger a new fetch
+ *   - re-enabling a layer uses cached data without re-fetching
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import App from "../App";
 
 const OVERPASS_RESPONSE = {
   elements: [
-    { type: "node", id: 1, lat: 51.51, lon: -0.12 },
-    { type: "node", id: 2, lat: 51.52, lon: -0.08 },
-    { type: "node", id: 3, lat: 51.50, lon: -0.10 },
+    { type: "node", id: 1, lat: 51.51, lon: -0.12, tags: { amenity: "restaurant" } },
+    { type: "node", id: 2, lat: 51.52, lon: -0.08, tags: { amenity: "restaurant" } },
+    { type: "node", id: 3, lat: 51.50, lon: -0.10, tags: { amenity: "restaurant" } },
   ],
 };
 
+const DEBOUNCE_MS = 150;
+
 beforeEach(() => {
+  vi.useFakeTimers();
   vi.restoreAllMocks();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function mockFetchSuccess() {
@@ -32,14 +40,28 @@ function mockFetchSuccess() {
   );
 }
 
+async function flushDebounce() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+  });
+}
+
+/** Get the checkbox for a named layer (e.g. "Restaurants"). */
+function getCheckbox(layerName: string) {
+  return screen.getByRole("checkbox", { name: layerName });
+}
+
 describe("App integration", () => {
-  it("renders the layer panel with the default restaurant layer", () => {
+  it("renders the layer panel with both layers", () => {
     vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {}));
     render(<App />);
 
     expect(screen.getByText("Layers")).toBeInTheDocument();
     expect(screen.getByText("Restaurants")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox")).toBeChecked();
+    expect(screen.getByText("Cafés")).toBeInTheDocument();
+    expect(getCheckbox("Restaurants")).toBeChecked();
+    expect(getCheckbox("Cafés")).not.toBeChecked();
+    // Only the enabled layer shows an opacity slider
     expect(screen.getByRole("slider")).toBeInTheDocument();
   });
 
@@ -47,9 +69,9 @@ describe("App integration", () => {
     const fetchSpy = mockFetchSuccess();
     render(<App />);
 
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledOnce();
-    });
+    await flushDebounce();
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
 
     const [url, options] = fetchSpy.mock.calls[0];
     expect(url).toBe("https://overpass-api.de/api/interpreter");
@@ -62,47 +84,48 @@ describe("App integration", () => {
     const fetchSpy = mockFetchSuccess();
     render(<App />);
 
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledOnce();
-    });
+    await flushDebounce();
 
+    expect(fetchSpy).toHaveBeenCalledOnce();
     fetchSpy.mockClear();
 
-    // Toggle the layer off
-    fireEvent.click(screen.getByRole("checkbox"));
+    // Toggle restaurants off
+    fireEvent.click(getCheckbox("Restaurants"));
 
-    // Slider should disappear when layer is disabled
+    // Slider should disappear when no layers are enabled
     expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+
+    await flushDebounce();
 
     // No new fetch should have been made
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("re-enables the layer and re-fetches", async () => {
+  it("re-enables the layer and uses cached data without re-fetching", async () => {
     const fetchSpy = mockFetchSuccess();
     render(<App />);
 
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledOnce();
-    });
+    await flushDebounce();
 
-    // Toggle off then on
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("checkbox"));
+    expect(fetchSpy).toHaveBeenCalledOnce();
 
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
-    });
+    // Toggle restaurants off then on
+    fireEvent.click(getCheckbox("Restaurants"));
+    fireEvent.click(getCheckbox("Restaurants"));
+
+    await flushDebounce();
+
+    // Still only one fetch — data was cached
+    expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
   it("opacity slider updates without re-fetching", async () => {
     const fetchSpy = mockFetchSuccess();
     render(<App />);
 
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledOnce();
-    });
+    await flushDebounce();
 
+    expect(fetchSpy).toHaveBeenCalledOnce();
     fetchSpy.mockClear();
 
     const slider = screen.getByRole("slider");
@@ -110,6 +133,9 @@ describe("App integration", () => {
 
     // Slider value should update
     expect(slider).toHaveValue("0.5");
+
+    await flushDebounce();
+
     // No additional fetch
     expect(fetchSpy).not.toHaveBeenCalled();
   });

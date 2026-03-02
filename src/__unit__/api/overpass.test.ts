@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { overpassProvider } from "../../api/overpass";
 
+const bbox: [number, number, number, number] = [51.28, -0.51, 51.7, 0.33];
+
 describe("overpassProvider", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe("availableCategories", () => {
     it("returns a non-empty list of strings", () => {
       const categories = overpassProvider.availableCategories();
@@ -17,19 +23,13 @@ describe("overpassProvider", () => {
     });
   });
 
-  describe("fetchPoints", () => {
-    const bbox: [number, number, number, number] = [51.28, -0.51, 51.7, 0.33];
-
-    beforeEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it("sends a POST request with the correct Overpass QL query", async () => {
+  describe("fetchMultipleCategories", () => {
+    it("sends a union query for multiple categories", async () => {
       const mockFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(JSON.stringify({ elements: [] }), { status: 200 })
       );
 
-      await overpassProvider.fetchPoints("restaurant", bbox);
+      await overpassProvider.fetchMultipleCategories(["restaurant", "cafe"], bbox);
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url, options] = mockFetch.mock.calls[0];
@@ -38,39 +38,50 @@ describe("overpassProvider", () => {
 
       const body = options?.body as string;
       const decoded = decodeURIComponent(body.replace("data=", ""));
-      expect(decoded).toContain('"amenity"="restaurant"');
-      expect(decoded).toContain("51.28,-0.51,51.7,0.33");
       expect(decoded).toContain("[out:json]");
+      expect(decoded).toContain('"amenity"="restaurant"');
+      expect(decoded).toContain('"amenity"="cafe"');
+      expect(decoded).toMatch(/\(node.*node.*\);out body;/);
     });
 
-    it("extracts lat/lon from response elements", async () => {
+    it("splits response elements by amenity tag", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(
           JSON.stringify({
             elements: [
-              { type: "node", id: 1, lat: 51.5, lon: -0.1 },
-              { type: "node", id: 2, lat: 51.6, lon: 0.0 },
+              { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "restaurant" } },
+              { type: "node", id: 2, lat: 51.6, lon: 0.0, tags: { amenity: "cafe" } },
+              { type: "node", id: 3, lat: 51.7, lon: 0.1, tags: { amenity: "restaurant" } },
             ],
           }),
           { status: 200 }
         )
       );
 
-      const points = await overpassProvider.fetchPoints("cafe", bbox);
+      const result = await overpassProvider.fetchMultipleCategories(
+        ["restaurant", "cafe"],
+        bbox
+      );
 
-      expect(points).toEqual([
+      expect(result.get("restaurant")).toEqual([
         [51.5, -0.1],
-        [51.6, 0.0],
+        [51.7, 0.1],
       ]);
+      expect(result.get("cafe")).toEqual([[51.6, 0.0]]);
     });
 
-    it("returns an empty array when no elements are found", async () => {
+    it("returns empty arrays for categories with no matching elements", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(JSON.stringify({ elements: [] }), { status: 200 })
       );
 
-      const points = await overpassProvider.fetchPoints("hospital", bbox);
-      expect(points).toEqual([]);
+      const result = await overpassProvider.fetchMultipleCategories(
+        ["restaurant", "cafe"],
+        bbox
+      );
+
+      expect(result.get("restaurant")).toEqual([]);
+      expect(result.get("cafe")).toEqual([]);
     });
 
     it("throws on non-OK response", async () => {
@@ -79,8 +90,37 @@ describe("overpassProvider", () => {
       );
 
       await expect(
-        overpassProvider.fetchPoints("restaurant", bbox)
+        overpassProvider.fetchMultipleCategories(["restaurant"], bbox)
       ).rejects.toThrow("Overpass API error: 429");
+    });
+
+    it("passes the abort signal to fetch", async () => {
+      const mockFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ elements: [] }), { status: 200 })
+      );
+
+      const controller = new AbortController();
+      await overpassProvider.fetchMultipleCategories(["restaurant"], bbox, controller.signal);
+
+      expect(mockFetch.mock.calls[0][1]?.signal).toBe(controller.signal);
+    });
+  });
+
+  describe("fetchPoints", () => {
+    it("delegates to fetchMultipleCategories and returns points for the category", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            elements: [
+              { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "cafe" } },
+            ],
+          }),
+          { status: 200 }
+        )
+      );
+
+      const points = await overpassProvider.fetchPoints("cafe", bbox);
+      expect(points).toEqual([[51.5, -0.1]]);
     });
   });
 });

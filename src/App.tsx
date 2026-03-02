@@ -12,6 +12,14 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     opacity: 0.8,
     enabled: true,
   },
+  {
+    id: "cafes",
+    label: "Cafés",
+    category: "cafe",
+    colour: "#457b9d",
+    opacity: 0.8,
+    enabled: false,
+  },
 ];
 
 export default function App({ initialLayers = DEFAULT_LAYERS }: { initialLayers?: HeatLayer[] } = {}) {

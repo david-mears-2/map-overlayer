@@ -16,18 +16,40 @@ const CATEGORIES = [
   "place_of_worship",
 ];
 
+interface OverpassElement {
+  lat: number;
+  lon: number;
+  tags?: { amenity?: string };
+}
+
 export const overpassProvider: MapDataProvider = {
   async fetchPoints(
     category: string,
     bbox: [number, number, number, number]
   ): Promise<LatLngPoint[]> {
+    const result = await this.fetchMultipleCategories([category], bbox);
+    return result.get(category) ?? [];
+  },
+
+  async fetchMultipleCategories(
+    categories: string[],
+    bbox: [number, number, number, number],
+    signal?: AbortSignal
+  ): Promise<Map<string, LatLngPoint[]>> {
     const [south, west, north, east] = bbox;
-    const query = `[out:json][timeout:25];node["amenity"="${category}"](${south},${west},${north},${east});out body;`;
+    const unionParts = categories
+      .map((c) => `node["amenity"="${c}"](${south},${west},${north},${east});`)
+      .join("");
+    // Overpass QL union: (...;...;) merges results from all sub-queries
+    // into one response.  `out body` includes element tags so we can
+    // split results by amenity type below.
+    const query = `[out:json][timeout:25];(${unionParts});out body;`;
 
     const response = await fetch(OVERPASS_URL, {
       method: "POST",
       body: `data=${encodeURIComponent(query)}`,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal,
     });
 
     if (!response.ok) {
@@ -35,9 +57,20 @@ export const overpassProvider: MapDataProvider = {
     }
 
     const data = await response.json();
-    return data.elements.map(
-      (el: { lat: number; lon: number }) => [el.lat, el.lon] as LatLngPoint
-    );
+
+    const result = new Map<string, LatLngPoint[]>();
+    for (const category of categories) {
+      result.set(category, []);
+    }
+
+    for (const el of data.elements as OverpassElement[]) {
+      const amenity = el.tags?.amenity;
+      if (amenity && result.has(amenity)) {
+        result.get(amenity)!.push([el.lat, el.lon] as LatLngPoint);
+      }
+    }
+
+    return result;
   },
 
   availableCategories(): string[] {
