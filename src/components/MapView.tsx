@@ -24,29 +24,6 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
   );
 }
 
-function LoadingOverlay() {
-  const { loading } = useDataContext();
-  if (!loading) return null;
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(255,255,255,0.6)",
-        zIndex: 1000,
-        pointerEvents: "none",
-      }}
-    >
-      Loading…
-    </div>
-  );
-}
-
 function ErrorBanner() {
   const { error } = useDataContext();
   if (!error) return null;
@@ -62,7 +39,7 @@ function ErrorBanner() {
         color: "white",
         padding: "8px 16px",
         borderRadius: 4,
-        zIndex: 1001,
+        zIndex: 1000,
         pointerEvents: "none",
       }}
     >
@@ -99,7 +76,6 @@ export function MapView({ layers }: Props) {
             <DataLayer key={layer.id} layer={layer} />
           ))}
         </MapContainer>
-        <LoadingOverlay />
       </div>
     </DataProvider>
   );

@@ -160,25 +160,6 @@ describe("App integration", () => {
     expect(alert).toHaveTextContent("Network error");
   });
 
-  it("shows a loading indicator while data is being fetched", async () => {
-    vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {})); // never resolves
-    render(<App />);
-
-    await flushDebounce();
-
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading");
-  });
-
-  it("hides the loading indicator after data finishes loading", async () => {
-    mockFetchSuccess();
-    render(<App />);
-
-    await flushDebounce();
-
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-  });
-
   it("enabling multiple layers sends a single batched fetch for all categories", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(OVERPASS_MULTI_RESPONSE), { status: 200 })
