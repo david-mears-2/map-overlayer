@@ -149,6 +149,25 @@ describe("App integration", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("shows a loading indicator while data is being fetched", async () => {
+    vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {})); // never resolves
+    render(<App />);
+
+    await flushDebounce();
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+  });
+
+  it("hides the loading indicator after data finishes loading", async () => {
+    mockFetchSuccess();
+    render(<App />);
+
+    await flushDebounce();
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("shows an error alert when the fetch fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
     render(<App />);
