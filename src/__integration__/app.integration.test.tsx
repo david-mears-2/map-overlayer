@@ -23,6 +23,15 @@ const OVERPASS_RESPONSE = {
   ],
 };
 
+const OVERPASS_MULTI_RESPONSE = {
+  elements: [
+    { type: "node", id: 1, lat: 51.51, lon: -0.12, tags: { amenity: "restaurant" } },
+    { type: "node", id: 2, lat: 51.52, lon: -0.08, tags: { amenity: "restaurant" } },
+    { type: "node", id: 4, lat: 51.51, lon: -0.11, tags: { amenity: "cafe" } },
+    { type: "node", id: 5, lat: 51.53, lon: -0.09, tags: { amenity: "cafe" } },
+  ],
+};
+
 const DEBOUNCE_MS = 150;
 
 beforeEach(() => {
@@ -138,5 +147,29 @@ describe("App integration", () => {
 
     // No additional fetch
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("enabling multiple layers sends a single batched fetch for all categories", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(OVERPASS_MULTI_RESPONSE), { status: 200 })
+    );
+    render(<App />);
+
+    // Enable the second layer (Cafés)
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cafés" }));
+
+    await flushDebounce();
+
+    // A single fetch should be made containing both categories
+    expect(fetchSpy).toHaveBeenCalledOnce();
+
+    const [url, options] = fetchSpy.mock.calls[0];
+    expect(url).toBe("https://overpass-api.de/api/interpreter");
+    const body = decodeURIComponent((options?.body as string).replace("data=", ""));
+    expect(body).toContain('"amenity"="restaurant"');
+    expect(body).toContain('"amenity"="cafe"');
+
+    // Both layers should show opacity sliders
+    expect(screen.getAllByRole("slider")).toHaveLength(2);
   });
 });
