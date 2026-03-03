@@ -8,39 +8,46 @@ interface Props {
   points: LatLngPoint[];
   colour: string;
   opacity: number;
+  pointRadius: number;
 }
 
-function colourGradient(hex: string): Record<number, string> {
-  return { 0.4: "transparent", 0.65: hex + "88", 1.0: hex };
-}
-
-export function HeatmapLayer({ points, colour, opacity }: Props) {
+export function HeatmapLayer({ points, colour, opacity, pointRadius }: Props) {
   const map = useMap();
-  const layerRef = useRef<L.HeatLayer | null>(null);
+  const pointMarkersRef = useRef<L.CircleMarker[]>([]);
 
   useEffect(() => {
     if (points.length === 0) return;
 
-    const heat = L.heatLayer(points, {
-      radius: 20,
-      blur: 15,
-      maxZoom: 17,
-      gradient: colourGradient(colour),
-    });
-    heat.addTo(map);
-    layerRef.current = heat;
+    pointMarkersRef.current = points.map((p) =>
+      L.circleMarker(p, {
+        radius: pointRadius,
+        weight: 1,
+        fillColor: colour,
+        color: colour,
+        opacity: opacity,
+        fillOpacity: opacity,
+      }).addTo(map)
+    );
 
     return () => {
-      map.removeLayer(heat);
-      layerRef.current = null;
+      pointMarkersRef.current.forEach((marker) => map.removeLayer(marker));
+      pointMarkersRef.current = [];
     };
-  }, [map, points, colour]);
+  }, [map, points, colour, opacity, pointRadius]);
 
   useEffect(() => {
-    const layer = layerRef.current;
-    if (!layer) return;
-    layer._canvas.style.opacity = String(opacity);
+    if (pointMarkersRef.current[0]?.options.opacity === opacity) return;
+    pointMarkersRef.current.forEach((marker) => {
+      marker.setStyle({ opacity, fillOpacity: opacity });
+    });
   }, [opacity]);
+
+  useEffect(() => {
+    if (pointMarkersRef.current[0]?.getRadius() === pointRadius) return;
+    pointMarkersRef.current.forEach((marker) => {
+      marker.setRadius(pointRadius);
+    });
+  }, [pointRadius]);
 
   return null;
 }

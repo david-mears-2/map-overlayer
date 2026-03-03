@@ -53,7 +53,7 @@ export const overpassProvider: MapDataProvider = {
     });
 
     if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status}`);
+      throw new Error(`Overpass API error: ${response.status}, ${response.statusText}`);
     }
 
     const data = await response.json();
