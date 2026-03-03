@@ -4,11 +4,6 @@ import type { LatLngPoint } from "../types";
 // This allows us to swap out the underlying data source.
 
 export interface MapDataProvider {
-  fetchPoints(
-    category: string,
-    bbox: [number, number, number, number]
-  ): Promise<LatLngPoint[]>;
-
   fetchMultipleCategories(
     categories: string[],
     bbox: [number, number, number, number],

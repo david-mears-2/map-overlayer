@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { activeProvider } from "../api";
+import { overpassProvider } from "../api/overpass";
 import type { LatLngPoint } from "../types";
 import { LONDON_BBOX } from "../types";
 import { DataContext } from "./useDataContext";
@@ -8,7 +8,7 @@ import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 const DEBOUNCE_MS = 150;
 
 /**
- * Fetches point data for all enabled heatmap layers in a single batched
+ * Fetches point data for all enabled layers in a single batched
  * Overpass query and distributes results to consumers via context.
  *
  * Fetched data is cached by category — toggling a layer off and back on
@@ -46,7 +46,7 @@ export function DataProvider({
       setLoading(true);
       setError(null);
 
-      activeProvider
+      overpassProvider
         .fetchMultipleCategories(uncached, LONDON_BBOX, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;

@@ -27,14 +27,6 @@ interface OverpassElement {
 }
 
 export const overpassProvider: MapDataProvider = {
-  async fetchPoints(
-    category: string,
-    bbox: [number, number, number, number]
-  ): Promise<LatLngPoint[]> {
-    const result = await this.fetchMultipleCategories([category], bbox);
-    return result.get(category) ?? [];
-  },
-
   async fetchMultipleCategories(
     categories: string[],
     bbox: [number, number, number, number],

@@ -154,28 +154,4 @@ describe("overpassProvider", () => {
     });
   });
 
-  describe("fetchPoints", () => {
-    it("delegates to fetchMultipleCategories and returns points for the category", async () => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            elements: [
-              { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "cafe" } },
-            ],
-          }),
-          { status: 200 }
-        )
-      );
-
-      const points = await overpassProvider.fetchPoints("cafe", bbox);
-      expect(points).toEqual([[51.5, -0.1]]);
-    });
-
-    it("returns empty array when the category is absent from the result map", async () => {
-      vi.spyOn(overpassProvider, "fetchMultipleCategories").mockResolvedValue(new Map());
-
-      const points = await overpassProvider.fetchPoints("restaurant", bbox);
-      expect(points).toEqual([]);
-    });
-  });
 });

@@ -3,8 +3,8 @@ import { MapView } from "./components/MapView";
 import { LayerPanel } from "./components/LayerPanel";
 import type { HeatLayer } from "./types";
 
-const DEFAULT_OPACITY: Readonly<number> = 0.8;
-const DEFAULT_POINT_RADIUS: Readonly<number> = 2;
+const DEFAULT_OPACITY = 0.8;
+const DEFAULT_POINT_RADIUS = 2;
 
 // TODO: Derive these from availableCategories()
 const DEFAULT_LAYERS: HeatLayer[] = [

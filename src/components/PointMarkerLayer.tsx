@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import "leaflet.heat";
 import type { LatLngPoint } from "../types";
 
 interface Props {
@@ -11,7 +10,7 @@ interface Props {
   pointRadius: number;
 }
 
-export function HeatmapLayer({ points, colour, opacity, pointRadius }: Props) {
+export function PointMarkerLayer({ points, colour, opacity, pointRadius }: Props) {
   const map = useMap();
   const pointMarkersRef = useRef<L.CircleMarker[]>([]);
 

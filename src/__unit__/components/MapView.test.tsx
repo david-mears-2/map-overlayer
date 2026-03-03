@@ -16,8 +16,8 @@ vi.mock("../../context/DataProvider", () => ({
   ),
 }));
 
-vi.mock("../../components/HeatmapLayer", () => ({
-  HeatmapLayer: () => <div data-testid="heatmap-layer" />,
+vi.mock("../../components/PointMarkerLayer", () => ({
+  PointMarkerLayer: () => <div data-testid="point-marker-layer" />,
 }));
 
 vi.mock("../../context/useDataContext");
@@ -90,7 +90,7 @@ describe("MapView", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("renders a heatmap layer when a layer is enabled and has points", () => {
+  it("renders a point marker layer when a layer is enabled and has points", () => {
     mockUseDataContext.mockReturnValue({
       getPoints: () => [[51.5, -0.1]],
       loading: false,
@@ -99,10 +99,10 @@ describe("MapView", () => {
 
     render(<MapView layers={[ENABLED_LAYER]} />);
 
-    expect(screen.getByTestId("heatmap-layer")).toBeInTheDocument();
+    expect(screen.getByTestId("point-marker-layer")).toBeInTheDocument();
   });
 
-  it("does not render a heatmap layer when the layer has no points", () => {
+  it("does not render a point marker layer when the layer has no points", () => {
     mockUseDataContext.mockReturnValue({
       getPoints: () => [],
       loading: false,
@@ -111,6 +111,6 @@ describe("MapView", () => {
 
     render(<MapView layers={[ENABLED_LAYER]} />);
 
-    expect(screen.queryByTestId("heatmap-layer")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("point-marker-layer")).not.toBeInTheDocument();
   });
 });
