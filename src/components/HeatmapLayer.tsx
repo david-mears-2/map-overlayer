@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import "leaflet.heat";
 import type { LatLngPoint } from "../types";
 
 interface Props {

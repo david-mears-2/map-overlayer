@@ -4,7 +4,7 @@ import { afterEach } from "vitest";
 
 afterEach(cleanup);
 
-// Stub canvas 2D context for jsdom — Leaflet and leaflet.heat require it
+// Stub canvas 2D context for jsdom — Leaflet probes for canvas support
 // but integration tests only verify data flow, not pixel output.
 const noop = () => {};
 HTMLCanvasElement.prototype.getContext = (() => {
