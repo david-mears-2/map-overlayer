@@ -15,31 +15,32 @@ function renderInMap(ui: React.ReactElement) {
 describe("HeatmapLayer", () => {
   it("renders nothing and does not crash with empty points", () => {
     const { container } = renderInMap(
-      <HeatmapLayer points={[]} colour="#ff0000" opacity={0.8} />
+      <HeatmapLayer points={[]} colour="#ff0000" opacity={0.8} pointRadius={2} />
     );
     expect(container).toBeDefined();
   });
 
-  it("renders a canvas when given points", () => {
+  it("adds circle markers to the map when given points", () => {
     const points: LatLngPoint[] = [
       [51.5, -0.1],
       [51.6, 0.0],
     ];
     const { container } = renderInMap(
-      <HeatmapLayer points={points} colour="#ff0000" opacity={0.8} />
+      <HeatmapLayer points={points} colour="#ff0000" opacity={0.8} pointRadius={2} />
     );
-    // leaflet.heat adds a canvas to the overlay pane
-    const canvas = container.querySelector(".leaflet-overlay-pane canvas");
-    expect(canvas).not.toBeNull();
+    // L.circleMarker renders SVG path elements inside the overlay pane
+    const paths = container.querySelectorAll(".leaflet-overlay-pane path");
+    expect(paths.length).toBe(2);
   });
 
-  it("applies opacity to the canvas", () => {
+  it("applies colour to circle markers", () => {
     const points: LatLngPoint[] = [[51.5, -0.1]];
     const { container } = renderInMap(
-      <HeatmapLayer points={points} colour="#ff0000" opacity={0.5} />
+      <HeatmapLayer points={points} colour="#ff0000" opacity={0.5} pointRadius={3} />
     );
-    const canvas = container.querySelector(".leaflet-overlay-pane canvas");
-    expect(canvas).not.toBeNull();
-    expect((canvas as HTMLElement).style.opacity).toBe("0.5");
+    const path = container.querySelector(".leaflet-overlay-pane path");
+    expect(path).not.toBeNull();
+    expect(path!.getAttribute("stroke")).toBe("#ff0000");
+    expect(path!.getAttribute("fill")).toBe("#ff0000");
   });
 });

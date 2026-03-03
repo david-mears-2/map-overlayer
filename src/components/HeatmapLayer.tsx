@@ -35,19 +35,5 @@ export function HeatmapLayer({ points, colour, opacity, pointRadius }: Props) {
     };
   }, [map, points, colour, opacity, pointRadius]);
 
-  useEffect(() => {
-    if (pointMarkersRef.current[0]?.options.opacity === opacity) return;
-    pointMarkersRef.current.forEach((marker) => {
-      marker.setStyle({ opacity, fillOpacity: opacity });
-    });
-  }, [opacity]);
-
-  useEffect(() => {
-    if (pointMarkersRef.current[0]?.getRadius() === pointRadius) return;
-    pointMarkersRef.current.forEach((marker) => {
-      marker.setRadius(pointRadius);
-    });
-  }, [pointRadius]);
-
   return null;
 }

@@ -9,6 +9,7 @@ const makeLayer = (overrides: Partial<HeatLayer> = {}): HeatLayer => ({
   category: "restaurant",
   colour: "#e63946",
   opacity: 0.8,
+  pointRadius: 2,
   enabled: true,
   ...overrides,
 });
@@ -17,7 +18,7 @@ describe("LayerPanel", () => {
   it("renders layer labels", () => {
     const layers = [makeLayer(), makeLayer({ id: "cafes", label: "Cafes" })];
     render(
-      <LayerPanel layers={layers} onToggle={vi.fn()} onOpacityChange={vi.fn()} />
+      <LayerPanel layers={layers} onToggle={vi.fn()} onOpacityChange={vi.fn()} onRadiusChange={vi.fn()} />
     );
 
     expect(screen.getByText("Restaurants")).toBeInTheDocument();
@@ -30,6 +31,7 @@ describe("LayerPanel", () => {
         layers={[makeLayer({ enabled: true })]}
         onToggle={vi.fn()}
         onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
       />
     );
 
@@ -43,6 +45,7 @@ describe("LayerPanel", () => {
         layers={[makeLayer({ enabled: false })]}
         onToggle={vi.fn()}
         onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
       />
     );
 
@@ -57,6 +60,7 @@ describe("LayerPanel", () => {
         layers={[makeLayer({ id: "pubs" })]}
         onToggle={onToggle}
         onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
       />
     );
 
@@ -64,7 +68,7 @@ describe("LayerPanel", () => {
     expect(onToggle).toHaveBeenCalledWith("pubs");
   });
 
-  it("shows opacity slider only for enabled layers", () => {
+  it("does not show Style options button for disabled layers", () => {
     render(
       <LayerPanel
         layers={[
@@ -73,25 +77,90 @@ describe("LayerPanel", () => {
         ]}
         onToggle={vi.fn()}
         onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
       />
     );
 
-    const sliders = screen.getAllByRole("slider");
-    expect(sliders).toHaveLength(1);
+    // Only one "Style options" button (for the enabled layer)
+    const buttons = screen.getAllByRole("button", { name: "Style options" });
+    expect(buttons).toHaveLength(1);
   });
 
-  it("calls onOpacityChange when slider value changes", () => {
+  it("shows sliders after clicking Style options", () => {
+    render(
+      <LayerPanel
+        layers={[makeLayer({ id: "restaurants", opacity: 0.8 })]}
+        onToggle={vi.fn()}
+        onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
+      />
+    );
+
+    // No sliders visible initially
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+
+    // Click Style options to expand
+    fireEvent.click(screen.getByRole("button", { name: "Style options" }));
+
+    // Now both opacity and radius sliders appear
+    const sliders = screen.getAllByRole("slider");
+    expect(sliders).toHaveLength(2);
+  });
+
+  it("calls onOpacityChange when opacity slider value changes", () => {
     const onOpacityChange = vi.fn();
     render(
       <LayerPanel
         layers={[makeLayer({ id: "restaurants", opacity: 0.8 })]}
         onToggle={vi.fn()}
         onOpacityChange={onOpacityChange}
+        onRadiusChange={vi.fn()}
       />
     );
 
-    const slider = screen.getByRole("slider");
-    fireEvent.change(slider, { target: { value: "0.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Style options" }));
+
+    const sliders = screen.getAllByRole("slider");
+    fireEvent.change(sliders[0], { target: { value: "0.5" } });
     expect(onOpacityChange).toHaveBeenCalledWith("restaurants", 0.5);
+  });
+
+  it("calls onRadiusChange when radius slider value changes", () => {
+    const onRadiusChange = vi.fn();
+    render(
+      <LayerPanel
+        layers={[makeLayer({ id: "restaurants", pointRadius: 2 })]}
+        onToggle={vi.fn()}
+        onOpacityChange={vi.fn()}
+        onRadiusChange={onRadiusChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Style options" }));
+
+    const sliders = screen.getAllByRole("slider");
+    fireEvent.change(sliders[1], { target: { value: "5" } });
+    expect(onRadiusChange).toHaveBeenCalledWith("restaurants", 5);
+  });
+
+  it("collapses style options when clicking Style options again", () => {
+    render(
+      <LayerPanel
+        layers={[makeLayer()]}
+        onToggle={vi.fn()}
+        onOpacityChange={vi.fn()}
+        onRadiusChange={vi.fn()}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: "Style options" });
+
+    // Expand
+    fireEvent.click(button);
+    expect(screen.getAllByRole("slider")).toHaveLength(2);
+
+    // Collapse
+    fireEvent.click(button);
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
   });
 });

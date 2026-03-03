@@ -8,12 +8,6 @@ const CATEGORIES = [
   "cafe",
   "pub",
   "bar",
-  "hospital",
-  "school",
-  "pharmacy",
-  "park",
-  "bicycle_parking",
-  "place_of_worship",
 ];
 
 interface OverpassElement {

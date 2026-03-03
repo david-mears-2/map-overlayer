@@ -19,7 +19,7 @@ describe("overpassProvider", () => {
       const categories = overpassProvider.availableCategories();
       expect(categories).toContain("restaurant");
       expect(categories).toContain("cafe");
-      expect(categories).toContain("hospital");
+      expect(categories).toContain("pub");
     });
   });
 

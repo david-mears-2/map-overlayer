@@ -27,22 +27,13 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     enabled: true,
   },
   {
-    id: "parks",
-    label: "Parks",
-    category: "park",
-    colour: "green",
-    opacity: DEFAULT_OPACITY,
-    pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: true,
-  },
-  {
     id: "pubs",
     label: "Pubs",
     category: "pub",
     colour: "orange",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: true,
+    enabled: false,
   },
 ];
 

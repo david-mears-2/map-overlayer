@@ -3,7 +3,7 @@
  * network boundary (fetch) mocked. This exercises the wiring between
  * App → MapView → DataProvider → overpassProvider → fetch.
  *
- * Leaflet's canvas-based rendering won't produce visible pixels in jsdom,
+ * Leaflet's rendering won't produce visible pixels in jsdom,
  * but we can verify that:
  *   - the layer panel renders with the correct initial state
  *   - toggling/opacity controls update state correctly
@@ -14,6 +14,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import App from "../App";
+import type { HeatLayer } from "../types";
+
+/** A minimal two-layer fixture for focused integration tests. */
+const TWO_LAYERS: HeatLayer[] = [
+  {
+    id: "restaurants",
+    label: "Restaurants",
+    category: "restaurant",
+    colour: "red",
+    opacity: 0.8,
+    pointRadius: 2,
+    enabled: true,
+  },
+  {
+    id: "cafes",
+    label: "Cafés",
+    category: "cafe",
+    colour: "blue",
+    opacity: 0.8,
+    pointRadius: 2,
+    enabled: false,
+  },
+];
 
 const OVERPASS_RESPONSE = {
   elements: [
@@ -55,28 +78,30 @@ async function flushDebounce() {
   });
 }
 
-/** Get the checkbox for a named layer (e.g. "Restaurants"). */
-function getCheckbox(layerName: string) {
-  return screen.getByRole("checkbox", { name: layerName });
-}
-
 describe("App integration", () => {
-  it("renders the layer panel with both layers", () => {
+  it("renders the layer panel with all layers", () => {
     vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {}));
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     expect(screen.getByText("Layers")).toBeInTheDocument();
     expect(screen.getByText("Restaurants")).toBeInTheDocument();
     expect(screen.getByText("Cafés")).toBeInTheDocument();
-    expect(getCheckbox("Restaurants")).toBeChecked();
-    expect(getCheckbox("Cafés")).not.toBeChecked();
-    // Only the enabled layer shows an opacity slider
-    expect(screen.getByRole("slider")).toBeInTheDocument();
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
+
+    // Style options button only shown for the enabled layer
+    const styleButtons = screen.getAllByRole("button", { name: "Style options" });
+    expect(styleButtons).toHaveLength(1);
+
+    // No sliders visible until Style options is clicked
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
   });
 
   it("fetches restaurant data from Overpass on mount", async () => {
     const fetchSpy = mockFetchSuccess();
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
@@ -91,7 +116,7 @@ describe("App integration", () => {
 
   it("does not fetch when the layer is toggled off", async () => {
     const fetchSpy = mockFetchSuccess();
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
@@ -99,10 +124,11 @@ describe("App integration", () => {
     fetchSpy.mockClear();
 
     // Toggle restaurants off
-    fireEvent.click(getCheckbox("Restaurants"));
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[0]);
 
-    // Slider should disappear when no layers are enabled
-    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    // Style options button should disappear when no layers are enabled
+    expect(screen.queryByRole("button", { name: "Style options" })).not.toBeInTheDocument();
 
     await flushDebounce();
 
@@ -112,15 +138,16 @@ describe("App integration", () => {
 
   it("re-enables the layer and uses cached data without re-fetching", async () => {
     const fetchSpy = mockFetchSuccess();
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
     expect(fetchSpy).toHaveBeenCalledOnce();
 
     // Toggle restaurants off then on
-    fireEvent.click(getCheckbox("Restaurants"));
-    fireEvent.click(getCheckbox("Restaurants"));
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[0]);
+    fireEvent.click(checkboxes[0]);
 
     await flushDebounce();
 
@@ -130,18 +157,21 @@ describe("App integration", () => {
 
   it("opacity slider updates without re-fetching", async () => {
     const fetchSpy = mockFetchSuccess();
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
     expect(fetchSpy).toHaveBeenCalledOnce();
     fetchSpy.mockClear();
 
-    const slider = screen.getByRole("slider");
-    fireEvent.change(slider, { target: { value: "0.5" } });
+    // Open style options to reveal sliders
+    fireEvent.click(screen.getByRole("button", { name: "Style options" }));
 
-    // Slider value should update
-    expect(slider).toHaveValue("0.5");
+    const sliders = screen.getAllByRole("slider");
+    // First slider is opacity
+    fireEvent.change(sliders[0], { target: { value: "0.5" } });
+
+    expect(sliders[0]).toHaveValue("0.5");
 
     await flushDebounce();
 
@@ -151,7 +181,7 @@ describe("App integration", () => {
 
   it("shows a loading indicator while data is being fetched", async () => {
     vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {})); // never resolves
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
@@ -161,7 +191,7 @@ describe("App integration", () => {
 
   it("hides the loading indicator after data finishes loading", async () => {
     mockFetchSuccess();
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     await flushDebounce();
 
@@ -172,10 +202,11 @@ describe("App integration", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(OVERPASS_MULTI_RESPONSE), { status: 200 })
     );
-    render(<App />);
+    render(<App initialLayers={TWO_LAYERS} />);
 
     // Enable the second layer (Cafés)
-    fireEvent.click(screen.getByRole("checkbox", { name: "Cafés" }));
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[1]);
 
     await flushDebounce();
 
@@ -188,7 +219,7 @@ describe("App integration", () => {
     expect(body).toContain('"amenity"="restaurant"');
     expect(body).toContain('"amenity"="cafe"');
 
-    // Both layers should show opacity sliders
-    expect(screen.getAllByRole("slider")).toHaveLength(2);
+    // Both layers now have Style options buttons
+    expect(screen.getAllByRole("button", { name: "Style options" })).toHaveLength(2);
   });
 });
