@@ -8,17 +8,14 @@ interface Props {
   colour: string;
   opacity: number;
   pointRadius: number;
-  onRenderingChange: (rendering: boolean) => void;
 }
 
-export function PointMarkerLayer({ points, colour, opacity, pointRadius, onRenderingChange }: Props) {
+export function PointMarkerLayer({ points, colour, opacity, pointRadius }: Props) {
   const map = useMap();
   const pointMarkersRef = useRef<L.CircleMarker[]>([]);
 
   useEffect(() => {
     if (points.length === 0) return;
-
-    onRenderingChange(true);
 
     pointMarkersRef.current = points.map((p) =>
       L.circleMarker(p, {
@@ -31,13 +28,11 @@ export function PointMarkerLayer({ points, colour, opacity, pointRadius, onRende
       }).addTo(map)
     );
 
-    onRenderingChange(false);
-
     return () => {
       pointMarkersRef.current.forEach((marker) => map.removeLayer(marker));
       pointMarkersRef.current = [];
     };
-  }, [map, points, colour, opacity, pointRadius, onRenderingChange]);
+  }, [map, points, colour, opacity, pointRadius]);
 
   return null;
 }
