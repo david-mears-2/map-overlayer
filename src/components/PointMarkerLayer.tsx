@@ -10,7 +10,7 @@ interface Props {
   pointRadius: number;
 }
 
-export function HeatmapLayer({ points, colour, opacity, pointRadius }: Props) {
+export function PointMarkerLayer({ points, colour, opacity, pointRadius }: Props) {
   const map = useMap();
   const pointMarkersRef = useRef<L.CircleMarker[]>([]);
 

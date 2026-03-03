@@ -1,6 +1,6 @@
-// React context for sharing fetched heatmap point data between the
+// React context for sharing fetched point data between the
 // DataProvider (which fetches) and individual DataLayer components
-// (which render heatmaps).
+// (which render point markers).
 //
 // Separated from DataProvider.tsx because the react-refresh lint rule
 // requires that files exporting React components only export components,

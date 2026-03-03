@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { MapContainer } from "react-leaflet";
-import { HeatmapLayer } from "../../components/HeatmapLayer";
+import { PointMarkerLayer } from "../../components/PointMarkerLayer";
 import type { LatLngPoint } from "../../types";
 
 function renderInMap(ui: React.ReactElement) {
@@ -12,10 +12,10 @@ function renderInMap(ui: React.ReactElement) {
   );
 }
 
-describe("HeatmapLayer", () => {
+describe("PointMarkerLayer", () => {
   it("renders nothing and does not crash with empty points", () => {
     const { container } = renderInMap(
-      <HeatmapLayer points={[]} colour="#ff0000" opacity={0.8} pointRadius={2} />
+      <PointMarkerLayer points={[]} colour="#ff0000" opacity={0.8} pointRadius={2} />
     );
     expect(container).toBeDefined();
   });
@@ -26,7 +26,7 @@ describe("HeatmapLayer", () => {
       [51.6, 0.0],
     ];
     const { container } = renderInMap(
-      <HeatmapLayer points={points} colour="#ff0000" opacity={0.8} pointRadius={2} />
+      <PointMarkerLayer points={points} colour="#ff0000" opacity={0.8} pointRadius={2} />
     );
     // L.circleMarker renders SVG path elements inside the overlay pane
     const paths = container.querySelectorAll(".leaflet-overlay-pane path");
@@ -36,7 +36,7 @@ describe("HeatmapLayer", () => {
   it("applies colour to circle markers", () => {
     const points: LatLngPoint[] = [[51.5, -0.1]];
     const { container } = renderInMap(
-      <HeatmapLayer points={points} colour="#ff0000" opacity={0.5} pointRadius={3} />
+      <PointMarkerLayer points={points} colour="#ff0000" opacity={0.5} pointRadius={3} />
     );
     const path = container.querySelector(".leaflet-overlay-pane path");
     expect(path).not.toBeNull();

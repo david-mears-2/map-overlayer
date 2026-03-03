@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
-import { HeatmapLayer } from "./HeatmapLayer";
+import { PointMarkerLayer } from "./PointMarkerLayer";
 import { DataProvider } from "../context/DataProvider";
 import { useDataContext } from "../context/useDataContext";
 import type { HeatLayer } from "../types";
@@ -16,7 +16,7 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
   const points = getPoints(layer.category);
   if (!layer.enabled || points.length === 0) return null;
   return (
-    <HeatmapLayer
+    <PointMarkerLayer
       points={points}
       colour={layer.colour}
       opacity={layer.opacity}
