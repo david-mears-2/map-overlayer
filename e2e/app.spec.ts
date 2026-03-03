@@ -165,38 +165,48 @@ test.describe("Map Overlayer", () => {
     await expect(radiusSlider).toHaveValue("7");
   });
 
-  test("enabling a disabled layer adds its markers to the map", async ({ page }) => {
+  test("toggling a layer off removes its markers and toggling back on restores them", async ({ page }) => {
     await page.goto("/");
 
     const overlayPaths = page.locator(".leaflet-overlay-pane path");
     await expect(overlayPaths.first()).toBeAttached({ timeout: 5_000 });
     const countBefore = await overlayPaths.count();
 
-    // Enable the third layer (Pubs — disabled by default)
+    // Disable the third layer (Pubs — enabled by default)
     const pubsCheckbox = page.getByRole("checkbox").nth(2);
+    await expect(pubsCheckbox).toBeChecked();
+    await pubsCheckbox.click();
     await expect(pubsCheckbox).not.toBeChecked();
+
+    // One pub marker should disappear
+    await expect(overlayPaths).toHaveCount(countBefore - 1, { timeout: 5_000 });
+
+    // Re-enable — markers should return
     await pubsCheckbox.click();
     await expect(pubsCheckbox).toBeChecked();
-
-    // One additional pub marker should appear
-    await expect(overlayPaths).toHaveCount(countBefore + 1, { timeout: 5_000 });
+    await expect(overlayPaths).toHaveCount(countBefore, { timeout: 5_000 });
   });
 
-  test("enabling a non-amenity layer (parks) adds its markers", async ({ page }) => {
+  test("toggling a non-amenity layer (parks) off removes its markers and toggling back on restores them", async ({ page }) => {
     await page.goto("/");
 
     const overlayPaths = page.locator(".leaflet-overlay-pane path");
     await expect(overlayPaths.first()).toBeAttached({ timeout: 5_000 });
     const countBefore = await overlayPaths.count();
 
-    // Enable Parks layer (uses leisure tag, not amenity)
+    // Disable Parks layer (uses leisure tag, not amenity)
     const parksCheckbox = page.getByRole("checkbox", { name: "Parks" });
+    await expect(parksCheckbox).toBeChecked();
+    await parksCheckbox.click();
     await expect(parksCheckbox).not.toBeChecked();
+
+    // Two park markers should disappear
+    await expect(overlayPaths).toHaveCount(countBefore - 2, { timeout: 5_000 });
+
+    // Re-enable — markers should return
     await parksCheckbox.click();
     await expect(parksCheckbox).toBeChecked();
-
-    // Two park markers should appear
-    await expect(overlayPaths).toHaveCount(countBefore + 2, { timeout: 5_000 });
+    await expect(overlayPaths).toHaveCount(countBefore, { timeout: 5_000 });
   });
 
   test("circle markers appear after data loads", async ({ page }) => {
