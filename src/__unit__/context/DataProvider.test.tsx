@@ -4,16 +4,15 @@ import { DataProvider } from "../../context/DataProvider";
 import { useDataContext } from "../../context/useDataContext";
 import type { LatLngPoint } from "../../types";
 
-vi.mock("../../api", () => ({
-  activeProvider: {
+vi.mock("../../api/overpass", () => ({
+  overpassProvider: {
     fetchMultipleCategories: vi.fn(),
-    fetchPoints: vi.fn(),
     availableCategories: vi.fn(() => ["restaurant", "cafe"]),
   },
 }));
 
-import { activeProvider } from "../../api";
-const mockFetchMultiple = vi.mocked(activeProvider.fetchMultipleCategories);
+import { overpassProvider } from "../../api/overpass";
+const mockFetchMultiple = vi.mocked(overpassProvider.fetchMultipleCategories);
 
 function TestConsumer({ category }: { category: string }) {
   const { getPoints, loading, error } = useDataContext();
