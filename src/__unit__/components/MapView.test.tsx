@@ -16,9 +16,15 @@ vi.mock("../../context/DataProvider", () => ({
   ),
 }));
 
-vi.mock("../../components/PointMarkerLayer", () => ({
-  PointMarkerLayer: () => <div data-testid="point-marker-layer" />,
-}));
+vi.mock("../../components/PointMarkerLayer", async () => {
+  const { useEffect } = await import("react");
+  return {
+    PointMarkerLayer: ({ onRenderingChange }: { onRenderingChange: (rendering: boolean) => void }) => {
+      useEffect(() => { onRenderingChange(true); }, [onRenderingChange]);
+      return <div data-testid="point-marker-layer" />;
+    },
+  };
+});
 
 vi.mock("../../context/useDataContext");
 import { useDataContext } from "../../context/useDataContext";
@@ -100,6 +106,18 @@ describe("MapView", () => {
     render(<MapView layers={[ENABLED_LAYER]} />);
 
     expect(screen.getByTestId("point-marker-layer")).toBeInTheDocument();
+  });
+
+  it("shows a rendering indicator when markers are being rendered", () => {
+    mockUseDataContext.mockReturnValue({
+      getPoints: () => [[51.5, -0.1]],
+      loading: false,
+      error: null,
+    });
+
+    render(<MapView layers={[ENABLED_LAYER]} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Rendering");
   });
 
   it("does not render a point marker layer when the layer has no points", () => {

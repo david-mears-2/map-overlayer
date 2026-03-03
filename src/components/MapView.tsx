@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { PointMarkerLayer } from "./PointMarkerLayer";
 import { DataProvider } from "../context/DataProvider";
@@ -11,7 +11,7 @@ interface Props {
   layers: HeatLayer[];
 }
 
-function DataLayer({ layer }: { layer: HeatLayer }) {
+function DataLayer({ layer, onRenderingChange }: { layer: HeatLayer; onRenderingChange: (rendering: boolean) => void }) {
   const { getPoints } = useDataContext();
   const points = getPoints(layer.category);
   if (!layer.enabled || points.length === 0) return null;
@@ -21,13 +21,15 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
       colour={layer.colour}
       opacity={layer.opacity}
       pointRadius={layer.pointRadius}
+      onRenderingChange={onRenderingChange}
     />
   );
 }
 
-function LoadingOverlay() {
+function StatusOverlay({ rendering }: { rendering: boolean }) {
   const { loading } = useDataContext();
-  if (!loading) return null;
+  if (!loading && !rendering) return null;
+  const message = loading ? "Loading…" : "Rendering…";
   return (
     <div
       role="status"
@@ -43,7 +45,7 @@ function LoadingOverlay() {
         pointerEvents: "none",
       }}
     >
-      Loading…
+      {message}
     </div>
   );
 }
@@ -73,6 +75,12 @@ function ErrorBanner() {
 }
 
 export function MapView({ layers }: Props) {
+  const [renderingCount, setRenderingCount] = useState(0);
+
+  const onRenderingChange = useCallback((isRendering: boolean) => {
+    setRenderingCount((prev) => prev + (isRendering ? 1 : -1));
+  }, []);
+
   // Stabilize the categories reference so that opacity-only changes to
   // `layers` don't cause DataProvider to re-run its fetch effect.
   // Strings are compared by value, so categoriesKey only changes when the
@@ -97,10 +105,10 @@ export function MapView({ layers }: Props) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {layers.map((layer) => (
-            <DataLayer key={layer.id} layer={layer} />
+            <DataLayer key={layer.id} layer={layer} onRenderingChange={onRenderingChange} />
           ))}
         </MapContainer>
-        <LoadingOverlay />
+        <StatusOverlay rendering={renderingCount > 0} />
       </div>
     </DataProvider>
   );
