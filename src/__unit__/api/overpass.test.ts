@@ -21,6 +21,13 @@ describe("overpassProvider", () => {
       expect(categories).toContain("cafe");
       expect(categories).toContain("pub");
     });
+
+    it("includes leisure and public_transport types", () => {
+      const categories = overpassProvider.availableCategories();
+      expect(categories).toContain("park");
+      expect(categories).toContain("nature_reserve");
+      expect(categories).toContain("station");
+    });
   });
 
   describe("fetchMultipleCategories", () => {
@@ -44,7 +51,20 @@ describe("overpassProvider", () => {
       expect(decoded).toMatch(/\(node.*node.*\);out body;/);
     });
 
-    it("splits response elements by amenity tag", async () => {
+    it("sends correct tag keys for non-amenity categories", async () => {
+      const mockFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ elements: [] }), { status: 200 })
+      );
+
+      await overpassProvider.fetchMultipleCategories(["park", "station"], bbox);
+
+      const body = mockFetch.mock.calls[0][1]?.body as string;
+      const decoded = decodeURIComponent(body.replace("data=", ""));
+      expect(decoded).toContain('"leisure"="park"');
+      expect(decoded).toContain('"public_transport"="station"');
+    });
+
+    it("splits response elements by their tag key and value", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(
           JSON.stringify({
@@ -52,6 +72,7 @@ describe("overpassProvider", () => {
               { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "restaurant" } },
               { type: "node", id: 2, lat: 51.6, lon: 0.0, tags: { amenity: "cafe" } },
               { type: "node", id: 3, lat: 51.7, lon: 0.1, tags: { amenity: "restaurant" } },
+              { type: "node", id: 4, lat: 51.8, lon: 0.2, tags: { leisure: "park" } },
             ],
           }),
           { status: 200 }
@@ -59,7 +80,7 @@ describe("overpassProvider", () => {
       );
 
       const result = await overpassProvider.fetchMultipleCategories(
-        ["restaurant", "cafe"],
+        ["restaurant", "cafe", "park"],
         bbox
       );
 
@@ -68,6 +89,7 @@ describe("overpassProvider", () => {
         [51.7, 0.1],
       ]);
       expect(result.get("cafe")).toEqual([[51.6, 0.0]]);
+      expect(result.get("park")).toEqual([[51.8, 0.2]]);
     });
 
     it("returns empty arrays for categories with no matching elements", async () => {
@@ -82,6 +104,12 @@ describe("overpassProvider", () => {
 
       expect(result.get("restaurant")).toEqual([]);
       expect(result.get("cafe")).toEqual([]);
+    });
+
+    it("throws when given an unknown category", async () => {
+      await expect(
+        overpassProvider.fetchMultipleCategories(["unknown_category"], bbox)
+      ).rejects.toThrow("Unknown category: unknown_category");
     });
 
     it("throws on non-OK response", async () => {
@@ -105,22 +133,24 @@ describe("overpassProvider", () => {
       expect(mockFetch.mock.calls[0][1]?.signal).toBe(controller.signal);
     });
 
-    it("ignores elements whose amenity is not in the requested categories", async () => {
+    it("ignores elements whose tags do not match any requested category", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(
           JSON.stringify({
             elements: [
               { type: "node", id: 1, lat: 51.5, lon: -0.1, tags: { amenity: "hospital" } },
-              { type: "node", id: 2, lat: 51.6, lon: 0.0, tags: {} },
-              { type: "node", id: 3, lat: 51.7, lon: 0.1 },
+              { type: "node", id: 2, lat: 51.6, lon: 0.0, tags: { leisure: "pitch" } },
+              { type: "node", id: 3, lat: 51.7, lon: 0.1, tags: {} },
+              { type: "node", id: 4, lat: 51.8, lon: 0.2 },
             ],
           }),
           { status: 200 }
         )
       );
 
-      const result = await overpassProvider.fetchMultipleCategories(["restaurant"], bbox);
+      const result = await overpassProvider.fetchMultipleCategories(["restaurant", "park"], bbox);
       expect(result.get("restaurant")).toEqual([]);
+      expect(result.get("park")).toEqual([]);
     });
   });
 

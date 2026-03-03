@@ -3,17 +3,27 @@ import type { LatLngPoint } from "../types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
-const CATEGORIES = [
-  "restaurant",
-  "cafe",
-  "pub",
-  "bar",
-];
+interface CategoryDef {
+  tag: string;
+  value: string;
+}
+
+const CATEGORY_DEFS: Record<string, CategoryDef> = {
+  restaurant: { tag: "amenity", value: "restaurant" },
+  cafe: { tag: "amenity", value: "cafe" },
+  pub: { tag: "amenity", value: "pub" },
+  bar: { tag: "amenity", value: "bar" },
+  music_venue: { tag: "amenity", value: "music_venue" },
+  nature_reserve: { tag: "leisure", value: "nature_reserve" },
+  park: { tag: "leisure", value: "park" },
+  playground: { tag: "leisure", value: "playground" },
+  station: { tag: "public_transport", value: "station" },
+};
 
 interface OverpassElement {
   lat: number;
   lon: number;
-  tags?: { amenity?: string };
+  tags?: Record<string, string>;
 }
 
 export const overpassProvider: MapDataProvider = {
@@ -32,7 +42,11 @@ export const overpassProvider: MapDataProvider = {
   ): Promise<Map<string, LatLngPoint[]>> {
     const [south, west, north, east] = bbox;
     const unionParts = categories
-      .map((c) => `node["amenity"="${c}"](${south},${west},${north},${east});`)
+      .map((c) => {
+        const def = CATEGORY_DEFS[c];
+        if (!def) throw new Error(`Unknown category: ${c}`);
+        return `node["${def.tag}"="${def.value}"](${south},${west},${north},${east});`;
+      })
       .join("");
     // Overpass QL union: (...;...;) merges results from all sub-queries
     // into one response.  `out body` includes element tags so we can
@@ -58,9 +72,11 @@ export const overpassProvider: MapDataProvider = {
     }
 
     for (const el of data.elements as OverpassElement[]) {
-      const amenity = el.tags?.amenity;
-      if (amenity && result.has(amenity)) {
-        result.get(amenity)!.push([el.lat, el.lon] as LatLngPoint);
+      for (const category of categories) {
+        const def = CATEGORY_DEFS[category];
+        if (def && el.tags?.[def.tag] === def.value) {
+          result.get(category)!.push([el.lat, el.lon] as LatLngPoint);
+        }
       }
     }
 
@@ -68,6 +84,6 @@ export const overpassProvider: MapDataProvider = {
   },
 
   availableCategories(): string[] {
-    return CATEGORIES;
+    return Object.keys(CATEGORY_DEFS);
   },
 };

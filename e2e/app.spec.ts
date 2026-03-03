@@ -1,18 +1,35 @@
 import { test, expect } from "@playwright/test";
 
-const MOCK_ELEMENTS = {
-  restaurant: [
-    { type: "node", id: 1, lat: 51.51, lon: -0.12, tags: { amenity: "restaurant" } },
-    { type: "node", id: 2, lat: 51.52, lon: -0.08, tags: { amenity: "restaurant" } },
-    { type: "node", id: 3, lat: 51.50, lon: -0.10, tags: { amenity: "restaurant" } },
-  ],
-  cafe: [
-    { type: "node", id: 4, lat: 51.51, lon: -0.11, tags: { amenity: "cafe" } },
-    { type: "node", id: 5, lat: 51.53, lon: -0.09, tags: { amenity: "cafe" } },
-  ],
-  pub: [
-    { type: "node", id: 6, lat: 51.49, lon: -0.13, tags: { amenity: "pub" } },
-  ],
+/** Maps category ID → { tag key, mock elements } for the Overpass mock. */
+const MOCK_CATEGORIES: Record<string, { tag: string; elements: object[] }> = {
+  restaurant: {
+    tag: "amenity",
+    elements: [
+      { type: "node", id: 1, lat: 51.51, lon: -0.12, tags: { amenity: "restaurant" } },
+      { type: "node", id: 2, lat: 51.52, lon: -0.08, tags: { amenity: "restaurant" } },
+      { type: "node", id: 3, lat: 51.50, lon: -0.10, tags: { amenity: "restaurant" } },
+    ],
+  },
+  cafe: {
+    tag: "amenity",
+    elements: [
+      { type: "node", id: 4, lat: 51.51, lon: -0.11, tags: { amenity: "cafe" } },
+      { type: "node", id: 5, lat: 51.53, lon: -0.09, tags: { amenity: "cafe" } },
+    ],
+  },
+  pub: {
+    tag: "amenity",
+    elements: [
+      { type: "node", id: 6, lat: 51.49, lon: -0.13, tags: { amenity: "pub" } },
+    ],
+  },
+  park: {
+    tag: "leisure",
+    elements: [
+      { type: "node", id: 7, lat: 51.48, lon: -0.07, tags: { leisure: "park" } },
+      { type: "node", id: 8, lat: 51.54, lon: -0.05, tags: { leisure: "park" } },
+    ],
+  },
 };
 
 /** Intercept Overpass API calls and return only the elements matching the requested categories. */
@@ -23,11 +40,11 @@ async function mockOverpassApi(page: import("@playwright/test").Page) {
     const rawQuery = form.get("data") ?? postData;
     const query = decodeURIComponent(rawQuery).toLowerCase();
 
-    const elements = Object.entries(MOCK_ELEMENTS)
-      .filter(([category]) =>
-        query.includes(`"amenity"="${category}"`) || query.includes(`amenity=${category}`)
+    const elements = Object.entries(MOCK_CATEGORIES)
+      .filter(([category, { tag }]) =>
+        query.includes(`"${tag}"="${category}"`) || query.includes(`${tag}=${category}`)
       )
-      .flatMap(([, els]) => els);
+      .flatMap(([, { elements: els }]) => els);
 
     await route.fulfill({
       status: 200,
@@ -50,6 +67,8 @@ test.describe("Map Overlayer", () => {
     await expect(page.getByText("Restaurants")).toBeVisible();
     await expect(page.getByText("Cafés")).toBeVisible();
     await expect(page.getByText("Pubs")).toBeVisible();
+    await expect(page.getByText("Parks")).toBeVisible();
+    await expect(page.getByText("Stations")).toBeVisible();
 
     // Map container renders with Leaflet tiles
     const mapContainer = page.locator(".leaflet-container");
@@ -161,6 +180,23 @@ test.describe("Map Overlayer", () => {
 
     // One additional pub marker should appear
     await expect(overlayPaths).toHaveCount(countBefore + 1, { timeout: 5_000 });
+  });
+
+  test("enabling a non-amenity layer (parks) adds its markers", async ({ page }) => {
+    await page.goto("/");
+
+    const overlayPaths = page.locator(".leaflet-overlay-pane path");
+    await expect(overlayPaths.first()).toBeAttached({ timeout: 5_000 });
+    const countBefore = await overlayPaths.count();
+
+    // Enable Parks layer (uses leisure tag, not amenity)
+    const parksCheckbox = page.getByRole("checkbox", { name: "Parks" });
+    await expect(parksCheckbox).not.toBeChecked();
+    await parksCheckbox.click();
+    await expect(parksCheckbox).toBeChecked();
+
+    // Two park markers should appear
+    await expect(overlayPaths).toHaveCount(countBefore + 2, { timeout: 5_000 });
   });
 
   test("circle markers appear after data loads", async ({ page }) => {
