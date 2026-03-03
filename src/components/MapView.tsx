@@ -20,6 +20,7 @@ function DataLayer({ layer }: { layer: HeatLayer }) {
       points={points}
       colour={layer.colour}
       opacity={layer.opacity}
+      pointRadius={layer.pointRadius}
     />
   );
 }

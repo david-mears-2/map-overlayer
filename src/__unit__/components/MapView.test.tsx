@@ -31,6 +31,7 @@ const ENABLED_LAYER: HeatLayer = {
   category: "pub",
   colour: "blue",
   opacity: 0.5,
+  pointRadius: 2,
   enabled: true,
 };
 

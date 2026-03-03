@@ -4,6 +4,7 @@ export interface HeatLayer {
   category: string;
   colour: string;
   opacity: number;
+  pointRadius: number;
   enabled: boolean;
 }
 

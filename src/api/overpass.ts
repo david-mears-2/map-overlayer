@@ -8,12 +8,6 @@ const CATEGORIES = [
   "cafe",
   "pub",
   "bar",
-  "hospital",
-  "school",
-  "pharmacy",
-  "park",
-  "bicycle_parking",
-  "place_of_worship",
 ];
 
 interface OverpassElement {
@@ -53,7 +47,7 @@ export const overpassProvider: MapDataProvider = {
     });
 
     if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status}`);
+      throw new Error(`Overpass API error: ${response.status}, ${response.statusText}`);
     }
 
     const data = await response.json();
