@@ -33,7 +33,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "orange",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "music-venues",
@@ -42,7 +42,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "purple",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "nature-reserves",
@@ -51,7 +51,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "green",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "parks",
@@ -60,7 +60,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "limegreen",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "playgrounds",
@@ -69,7 +69,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "gold",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
   {
     id: "stations",
@@ -78,7 +78,7 @@ const DEFAULT_LAYERS: HeatLayer[] = [
     colour: "grey",
     opacity: DEFAULT_OPACITY,
     pointRadius: DEFAULT_POINT_RADIUS,
-    enabled: false,
+    enabled: true,
   },
 ];
 
